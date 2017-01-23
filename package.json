@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/FAC9/webrtc-will-marina/issues"
   },
-  "homepage": "https://github.com/FAC9/webrtc-will-marina#readme"
+  "homepage": "https://github.com/FAC9/webrtc-will-marina#readme",
+  "devDependencies": {
+    "nodemon": "^1.11.0"
+  }
 }
