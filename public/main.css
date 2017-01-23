@@ -1,4 +1,9 @@
 body {
-  background-color: hsla(68, 20%, 60%, 1);
-  
+  background-color: hsla(180, 20%, 60%, 1);
+}
+
+#video-display {
+  width: 400px;
+  margin: 0 auto;
+  display: block;
 }
