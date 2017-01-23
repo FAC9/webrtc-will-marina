@@ -1,0 +1,20 @@
+{
+  "name": "webrtc-will-marina",
+  "version": "1.0.0",
+  "description": "Build a web app using WebRTC",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FAC9/webrtc-will-marina.git"
+  },
+  "author": "@marisid and @SavageWilliam",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FAC9/webrtc-will-marina/issues"
+  },
+  "homepage": "https://github.com/FAC9/webrtc-will-marina#readme"
+}
