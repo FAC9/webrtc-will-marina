@@ -1,5 +1,6 @@
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
 
 const options = {
   key: fs.readFileSync('keys/key.pem'),
@@ -7,10 +8,27 @@ const options = {
 }
 const port = process.env.PORT || 3000;
 
-const server = https.createServer(options, (req, res) => {
-  res.writeHead(200);
-  res.end("hello world\n");
-})
+const handler = (req, res) => {
+  let extension = req.url.split('.')[1] || "html";
+  let headers = {'content-type': 'text/' + extension};
+  res.writeHead(200, headers);
+
+  if(req.url = '/') {
+    let filepath = path.join(__dirname, 'public', 'index.html');
+    fs.readFile(filepath, (err, data) => {
+      if (err) throw err;
+      res.end(data);
+    });
+  } else {
+    let filepath = path.join(__dirname, 'public', 'main.css');
+    fs.readFile(filepath, (err, data) => {
+      if (err) throw err;
+      res.end(data);
+    });
+  }
+}
+
+const server = https.createServer(options, handler);
 
 server.listen(port, () => {
   console.log(`Server listening on port ${port}`);

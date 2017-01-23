@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>webRTC</title>
+    <link rel='stylesheet' href='main.css'>
+  </head>
+  <body>
+    <h1>webRTC</h1>
+    <video id='video-display'>
+
+    </video>
+    <script type='text/javascript'>
+
+      var options = {
+        video: {width: 1280, height: 720},
+        audio: true
+      };
+
+      navigator.mediaDevices.getUserMedia(options).then( function(avStream) {
+
+        var video = document.getElementById('video-display');
+        video.srcObject = avStream;
+        video.onloadedmetadata = function(e) {
+            video.play();
+        }
+      }).catch(function(err) {
+          console.log(err.name + ": " + err.message);
+      });
+
+    </script>
+  </body>
+</html>
