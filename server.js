@@ -13,14 +13,16 @@ const handler = (req, res) => {
   let headers = {'content-type': 'text/' + extension};
   res.writeHead(200, headers);
 
-  if(req.url = '/') {
+  if(req.url === '/') {
     let filepath = path.join(__dirname, 'public', 'index.html');
+    console.log(req.url, filepath);
     fs.readFile(filepath, (err, data) => {
       if (err) throw err;
       res.end(data);
     });
   } else {
     let filepath = path.join(__dirname, 'public', 'main.css');
+    console.log(req.rul, filepath);
     fs.readFile(filepath, (err, data) => {
       if (err) throw err;
       res.end(data);
