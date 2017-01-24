@@ -1,61 +1,156 @@
 (function () {
-  var options = {
-    video: {width: 1280, height: 720},
-    audio: true
-  };
 
-  navigator.mediaDevices.getUserMedia(options).then( function(avStream) {
-    var videoId = 1;
-    var video = document.getElementById("video-display-"+videoId);
-    video.srcObject = avStream;
-    video.onloadedmetadata = function(e) {
-        video.play();
-    }
-  }).catch(function(err) {
-      console.log(err.name + ": " + err.message);
-  });
+
+  //Setting up local video display
+
 
   // Create an endpoints database
-  var endpoints = {};
-  // Create a listener callback
-  // When targeting across browsers, you have no access to the other broswer's DOM
-  var listenerCb = function(userId, message) {
-      var target = document.getElementById(userId+"-dropdown").value;
-      var newPar = document.createElement("p");
-      newPar.innerHTML = "From " + userId + " " + message;
-      document.getElementById("user"+target).appendChild(newPar);
+  let endpoints = {};
+
+  // RTC helper functions using ES6
+  const startConnection = (from, to) => {
+    const pc = new RTCPeerConnection();
+
+    pc.onicecandidate = (e) => {
+      console.log("candidate", e.candidate);
+      if(e.candidate) {
+        signallingChannel.send(to.id, from, 'CANDIDATE', e.candidate);
+      } else {
+        console.log("not sending emoty candidate");
+      }
+    }
+
+    pc.onaddstream = (e) => {
+      console.log('recieved remote stream for:' , from.name);
+      let videoR = document.getElementById("videoR-display-"+to.id);
+      console.log("remote video", videoR);
+      videoR.srcObject = e.stream;
+      videoR.play();
+    }
+
+    let options = {
+      video: {width: 1280, height: 720},
+      audio: true
+    };
+
+    to.data.pc = pc;
+
+    return navigator.mediaDevices.getUserMedia(options)
+    .then( function(avStream) {
+      let videoL = document.getElementById("video-display-"+to.id);
+      videoL.srcObject = avStream;
+      videoL.onloadedmetadata = function(e) {
+          videoL.play();
+      }
+      pc.addStream(avStream);
+    })
+    .catch(function(err) {
+        console.log(err.name + ": " + err.message);
+    });
 
   }
+
+  // Create a listener callback
+  const listenerCb = (fromEndpoint, toEndpoint, method, data) => {
+    switch(method) {
+      case 'INIT':
+        toEndpoint.data.status = 'FREE';
+        break;
+
+      case 'CALL_REQUEST':
+        if(toEndpoint.data.status === 'FREE') {
+          //1) create RTCpeercon object, store it on data!
+          //2) pc.onIce... pc.onAddStream
+          //3) our end ready... now call 'ACCEPT_CALL' to other party.
+          startConnection(fromEndpoint.id, toEndpoint);
+
+          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'CALL_ACCEPT');
+        }
+        break;
+
+      case 'CALL_ACCEPT':
+
+        startConnection(fromEndpoint.id, toEndpoint)
+        .then( () => {
+          var pc2 = toEndpoint.data.pc;
+
+          pc2.createOffer().then((offer) => {
+            pc2.setLocalDescription(offer);
+            signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'OFFER', offer);
+          })
+        });
+
+        // 2) pc.createOffer. making a call 'OFFER' - sending json offer object
+        break;
+
+      case 'OFFER':
+
+        let pc1 = toEndpoint.data.pc;
+
+        pc1.setRemoteDescription(new RTCSessionDescription(data))
+        .then( () => pc1.createAnswer())
+        .then((answer) => {
+          pc1.setLocalDescription(answer);
+          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'ANSWER', answer)
+          console.log("pc1 after creating answer", pc1);
+        })
+        break;
+
+      case 'ANSWER':
+      //calls "CANDIDATE", with data..this might happen many times..
+        let pc3 = toEndpoint.data.pc;
+        pc3.setRemoteDescription(new RTCSessionDescription(data))
+        break;
+
+      case 'CANDIDATE':
+        console.log("ICE ICE BABY");
+        console.log(toEndpoint.id, data);
+
+        let pc4=toEndpoint.data.pc;
+        pc4.addIceCandidate(new RTCIceCandidate(data));
+
+        break;
+
+      case 'CALL_DENIED':
+        break;
+
+
+      default:
+        //do default
+    }
+  }
   // Create a signalling channel
-  var signallingChannel = {
-    registerUser: function(userId, userInfo, listenerCb) {
-      endpoints[userId] = {
+  const signallingChannel = {
+    registerUser: (userId, userInfo, listenerCb) => {
+      var newUser = endpoints[userId] = {
+        id: userId,
         name: userInfo.name,
         data: userInfo.data || {},
         cb: listenerCb
       }
+      listenerCb("system", newUser, "INIT");
     },
-    // to be implemented properly!!!
-    send: function(from, to, message) {
-      endpoints[to].cb(from, endpoints[to], message);
+    send: (from, to, method, data) => {
+      endpoints[to].cb(endpoints[from], endpoints[to], method, data);
     }
   }
+
   // Register all users
   signallingChannel.registerUser("user1", {name: "Marina"}, listenerCb);
   signallingChannel.registerUser("user2", {name: "Will"}, listenerCb);
   signallingChannel.registerUser("user3", {name: "Nick"}, listenerCb);
   signallingChannel.registerUser("user4", {name: "Marko"}, listenerCb);
-  // Setup event listeners for all users
-  document.querySelector('.call-btn-user1').addEventListener('click', function() {
-    signallingChannel.send('user1','hello world')
-  });
-  document.querySelector('.call-btn-user2').addEventListener('click', function() {
-    signallingChannel.send('user2','hello world')
-  });
-  document.querySelector('.call-btn-user3').addEventListener('click', function() {
-    signallingChannel.send('user3','hello world')
-  });
-  document.querySelector('.call-btn-user4').addEventListener('click', function() {
-    signallingChannel.send('user4','hello world')
-  });
+
+
+  //register click event to call buttons
+  const callBtns = document.querySelectorAll(".call-btn");
+  Array.prototype.forEach.call(callBtns, (button) => {
+    button.addEventListener('click', () => {
+      let from = button.parentElement.getAttribute("id");
+      let to = "user" + document.getElementById(from+'-dropdown').value;
+      signallingChannel.send(from, to, 'CALL_REQUEST');
+    })
+  })
+
+
 })();
