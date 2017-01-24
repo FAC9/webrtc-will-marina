@@ -20,7 +20,6 @@ const handler = (req, res) => {
       res.end(data);
     });
   } else {
-    console.log(req.url);
     let filepath = path.join(__dirname, 'public', req.url);
     fs.readFile(filepath, (err, data) => {
       if (err) console.log(err);
