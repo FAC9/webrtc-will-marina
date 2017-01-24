@@ -2,8 +2,17 @@ body {
   background-color: hsla(180, 20%, 60%, 1);
 }
 
-#video-display {
-  width: 400px;
-  margin: 0 auto;
+.video-display {
+  width: 300px;
+  display: inline-block;
+}
+
+.user-container {
+  display: inline-block;
+}
+
+button, select {
   display: block;
+  width: 100px;
+  margin: 0 auto;
 }
