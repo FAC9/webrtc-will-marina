@@ -1,52 +1,52 @@
 (function () {
 
-  let options = {
-    video: {width: 1280, height: 720},
-    audio: true
-  };
 
-  // Setting up local video display
-  // navigator.mediaDevices.getUserMedia(options).then( function(avStream) {
-  //   var videoId = 1;
-  //   var video = document.getElementById("video-display-"+videoId);
-  //   video.srcObject = avStream;
-  //   video.onloadedmetadata = function(e) {
-  //       video.play();
-  //   }
-  // }).catch(function(err) {
-  //     console.log(err.name + ": " + err.message);
-  // });
+  //Setting up local video display
+
 
   // Create an endpoints database
   let endpoints = {};
 
   // RTC helper functions using ES6
-  const startConnection = () => {
+  const startConnection = (from, to) => {
     const pc = new RTCPeerConnection();
-    let options = {
-      'audio': true,
-      'video': true,
-    }
 
-    pc.onicecandidate = (evt) => {
-      if(evt.candidate) {
-        signallingChannel.send({
-          'candidate': evt.candidate
-        }));
+    pc.onicecandidate = (e) => {
+      if(e.candidate) {
+        signallingChannel.send(to, from, 'CANDIDATE', e.candidate);
+      } else {
+        console.log("not sending emoty candidate");
       }
     }
 
-    navigator.getUserMedia(options).then( (stream) => {
-      pc.addTrack(stream);
-    }).catch((err) => {
-      console.log(err.name + ": " + err.message);
-    }));
+    pc.onaddstream = (e) => {
+      console.log('recieved remote stream for:' , from.name);
+      let videoR = document.getElementById("videoR-display-"+to);
+      console.log("remote video", videoR);
+      videoR.srcObject = e.stream;
+      videoR.play();
+    }
+
+    let options = {
+      video: {width: 1280, height: 720},
+      audio: true
+    };
+
+    navigator.mediaDevices.getUserMedia(options).then( function(avStream) {
+      let videoL = document.getElementById("video-display-"+to);
+      videoL.srcObject = avStream;
+      videoL.onloadedmetadata = function(e) {
+          videoL.play();
+      }
+    }).catch(function(err) {
+        console.log(err.name + ": " + err.message);
+    });
 
     return pc;
   }
 
   // Create a listener callback
-  const listenerCb = (from, toEndpoint, method, data) => {
+  const listenerCb = (fromEndpoint, toEndpoint, method, data) => {
     switch(method) {
       case 'INIT':
         toEndpoint.data.status = 'FREE';
@@ -57,34 +57,55 @@
           //1) create RTCpeercon object, store it on data!
           //2) pc.onIce... pc.onAddStream
           //3) our end ready... now call 'ACCEPT_CALL' to other party.
-          let pc = startConnection();
-
-          toEndpoint.data.pc = pc;
-          //toEndpoint = { id: "user1", name: "nick", data: { status: free, pc: XX}, cb: function }
-          signallingChannel.send(toEndpoint.id, from, 'ACCEPT_CALL', toEndpoint.data.pc);
+          let pc1 = startConnection(fromEndpoint.id, toEndpoint.id);
+          toEndpoint.data.pc = pc1;
+          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'CALL_ACCEPT');
         }
         break;
 
       case 'CALL_ACCEPT':
-      console.log("pc data", data);
+
+        let pc2 = startConnection(fromEndpoint.id, toEndpoint.id);
+        toEndpoint.data.pc = pc2;
+
         //1) create pc from this end - creating instance.. & store in data.pc
+        pc2.createOffer().then((offer) => {
+          pc2.setLocalDescription(offer);
+          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'OFFER', offer);
+        })
+
         // 2) pc.createOffer. making a call 'OFFER' - sending json offer object
+        break;
+
+      case 'OFFER':
+
+        let pc1 = toEndpoint.data.pc;
+
+        pc1.setRemoteDescription(new RTCSessionDescription(data))
+        .then( () => pc1.createAnswer())
+        .then((answer) => {
+          pc1.setLocalDescription(answer);
+          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'ANSWER', answer)
+          console.log("pc1 after creating answer", pc1);
+        })
+        break;
+
+      case 'ANSWER':
+      //calls "CANDIDATE", with data..this might happen many times..
+        let pc3 = toEndpoint.data.pc;
+        pc3.setRemoteDescription(new RTCSessionDescription(data))
+        break;
+
+      case 'CANDIDATE':
+        console.log("ICE ICE BABY");
+        console.log(data);
+
         break;
 
       case 'CALL_DENIED':
         break;
 
-      case 'OFFER':
-      //pc.createAnswer then call 'ANSWER'
-        break;
 
-      case 'ANSWER':
-      //calls "ICE_CANDIDATE", with data..this might happen many times..
-        break;
-
-      case 'ICE_CANDIDATE':
-
-        break;
 
       default:
         //do default
@@ -102,7 +123,7 @@
       listenerCb("system", newUser, "INIT");
     },
     send: (from, to, method, data) => {
-      endpoints[to].cb(from, endpoints[to], method, data);
+      endpoints[to].cb(endpoints[from], endpoints[to], method, data);
     }
   }
 
