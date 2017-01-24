@@ -12,8 +12,9 @@
     const pc = new RTCPeerConnection();
 
     pc.onicecandidate = (e) => {
+      console.log("candidate", e.candidate);
       if(e.candidate) {
-        signallingChannel.send(to, from, 'CANDIDATE', e.candidate);
+        signallingChannel.send(to.id, from, 'CANDIDATE', e.candidate);
       } else {
         console.log("not sending emoty candidate");
       }
@@ -21,7 +22,7 @@
 
     pc.onaddstream = (e) => {
       console.log('recieved remote stream for:' , from.name);
-      let videoR = document.getElementById("videoR-display-"+to);
+      let videoR = document.getElementById("videoR-display-"+to.id);
       console.log("remote video", videoR);
       videoR.srcObject = e.stream;
       videoR.play();
@@ -32,17 +33,21 @@
       audio: true
     };
 
-    navigator.mediaDevices.getUserMedia(options).then( function(avStream) {
-      let videoL = document.getElementById("video-display-"+to);
+    to.data.pc = pc;
+
+    return navigator.mediaDevices.getUserMedia(options)
+    .then( function(avStream) {
+      let videoL = document.getElementById("video-display-"+to.id);
       videoL.srcObject = avStream;
       videoL.onloadedmetadata = function(e) {
           videoL.play();
       }
-    }).catch(function(err) {
+      pc.addStream(avStream);
+    })
+    .catch(function(err) {
         console.log(err.name + ": " + err.message);
     });
 
-    return pc;
   }
 
   // Create a listener callback
@@ -57,22 +62,23 @@
           //1) create RTCpeercon object, store it on data!
           //2) pc.onIce... pc.onAddStream
           //3) our end ready... now call 'ACCEPT_CALL' to other party.
-          let pc1 = startConnection(fromEndpoint.id, toEndpoint.id);
-          toEndpoint.data.pc = pc1;
+          startConnection(fromEndpoint.id, toEndpoint);
+
           signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'CALL_ACCEPT');
         }
         break;
 
       case 'CALL_ACCEPT':
 
-        let pc2 = startConnection(fromEndpoint.id, toEndpoint.id);
-        toEndpoint.data.pc = pc2;
+        startConnection(fromEndpoint.id, toEndpoint)
+        .then( () => {
+          var pc2 = toEndpoint.data.pc;
 
-        //1) create pc from this end - creating instance.. & store in data.pc
-        pc2.createOffer().then((offer) => {
-          pc2.setLocalDescription(offer);
-          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'OFFER', offer);
-        })
+          pc2.createOffer().then((offer) => {
+            pc2.setLocalDescription(offer);
+            signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'OFFER', offer);
+          })
+        });
 
         // 2) pc.createOffer. making a call 'OFFER' - sending json offer object
         break;
@@ -98,13 +104,15 @@
 
       case 'CANDIDATE':
         console.log("ICE ICE BABY");
-        console.log(data);
+        console.log(toEndpoint.id, data);
+
+        let pc4=toEndpoint.data.pc;
+        pc4.addIceCandidate(new RTCIceCandidate(data));
 
         break;
 
       case 'CALL_DENIED':
         break;
-
 
 
       default:
