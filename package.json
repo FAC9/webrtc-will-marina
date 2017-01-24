@@ -20,5 +20,8 @@
   "homepage": "https://github.com/FAC9/webrtc-will-marina#readme",
   "devDependencies": {
     "nodemon": "^1.11.0"
+  },
+  "dependencies": {
+    "webrtc-adapter": "^3.1.0"
   }
 }

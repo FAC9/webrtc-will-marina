@@ -15,16 +15,15 @@ const handler = (req, res) => {
 
   if(req.url === '/') {
     let filepath = path.join(__dirname, 'public', 'index.html');
-    console.log(req.url, filepath);
     fs.readFile(filepath, (err, data) => {
-      if (err) throw err;
+      if (err) console.log(err);
       res.end(data);
     });
   } else {
-    let filepath = path.join(__dirname, 'public', 'main.css');
-    console.log(req.rul, filepath);
+    console.log(req.url);
+    let filepath = path.join(__dirname, 'public', req.url);
     fs.readFile(filepath, (err, data) => {
-      if (err) throw err;
+      if (err) console.log(err);
       res.end(data);
     });
   }
