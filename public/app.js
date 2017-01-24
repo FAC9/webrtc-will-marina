@@ -19,11 +19,11 @@
   var endpoints = {};
 
   // Create a listener callback
-  var listenerCb = function(from, to, message) {
-    // var newPar = document.createElement("p");
-    // newPar.innerHTML = "From " + from + " " + message;
-    // document.getElementById(to).appendChild(newPar);
-    switch(message) {
+  var listenerCb = function(from, toEndpoint, method, data) {
+    switch(method) {
+      case 'INIT':
+        toEndpoint.data.status = 'FREE';
+
       case 'CALL':
         //do something
         //if accepting, send message back to caller!
@@ -31,24 +31,25 @@
         break;
       default:
         //do default
-
+    }
   }
   // Create a signalling channel
   var signallingChannel = {
     registerUser: function(userId, userInfo, listenerCb) {
-      endpoints[userId] = {
+      var newUser = endpoints[userId] = {
         name: userInfo.name,
         data: userInfo.data || {},
         cb: listenerCb
       }
+      listenerCb("", newUser, "INIT");
     },
     // to be implemented properly!!!
-    send: function(from, to, message) {
-      endpoints[to].cb(from, to, message);
+    send: function(from, to, method, data) {
+      endpoints[to].cb(from, endpoints[to], method, data);
     }
   }
   // Register all users
-  signallingChannel.registerUser("user1", {name: "Marina", status: "FREE"}, listenerCb);
+  signallingChannel.registerUser("user1", {name: "Marina"}, listenerCb);
   signallingChannel.registerUser("user2", {name: "Will"}, listenerCb);
   signallingChannel.registerUser("user3", {name: "Nick"}, listenerCb);
   signallingChannel.registerUser("user4", {name: "Marko"}, listenerCb);
