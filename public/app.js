@@ -17,12 +17,20 @@
 
   // Create an endpoints database
   var endpoints = {};
+
   // Create a listener callback
-  // When targeting across browsers, you have no access to the other broswer's DOM
   var listenerCb = function(from, to, message) {
-      var newPar = document.createElement("p");
-      newPar.innerHTML = "From " + from + " " + message;
-      document.getElementById(to).appendChild(newPar);
+    // var newPar = document.createElement("p");
+    // newPar.innerHTML = "From " + from + " " + message;
+    // document.getElementById(to).appendChild(newPar);
+    switch(message) {
+      case 'CALL':
+        //do something
+        //if accepting, send message back to caller!
+        //THEN CREATE YOUR END OF THE CALL.. PEER CONNECTOR
+        break;
+      default:
+        //do default
 
   }
   // Create a signalling channel
@@ -40,36 +48,21 @@
     }
   }
   // Register all users
-  signallingChannel.registerUser("user1", {name: "Marina"}, listenerCb);
+  signallingChannel.registerUser("user1", {name: "Marina", status: "FREE"}, listenerCb);
   signallingChannel.registerUser("user2", {name: "Will"}, listenerCb);
   signallingChannel.registerUser("user3", {name: "Nick"}, listenerCb);
   signallingChannel.registerUser("user4", {name: "Marko"}, listenerCb);
 
 
-
+  //register click event to call buttons
   var callBtns = document.querySelectorAll(".call-btn");
-
   Array.prototype.forEach.call(callBtns, function(button) {
     button.addEventListener('click', function() {
       var from = button.parentElement.getAttribute("id");
       var to = "user" + document.getElementById(from+'-dropdown').value;
-      signallingChannel.send(from, to, 'hello world');
+      signallingChannel.send(from, to, 'CALL');
     })
   })
 
-  // Setup event listeners for all users
-  // document.querySelector('.call-btn-user1').addEventListener('click', function() {
-  //   var to = "user" + document.getElementById("user1-dropdown").value;
-  //   signallingChannel.send('user1', to, 'hello world')
-  // });
-  //
-  // document.querySelector('.call-btn-user2').addEventListener('click', function() {
-  //   signallingChannel.send('user2','hello world')
-  // });
-  // document.querySelector('.call-btn-user3').addEventListener('click', function() {
-  //   signallingChannel.send('user3','hello world')
-  // });
-  // document.querySelector('.call-btn-user4').addEventListener('click', function() {
-  //   signallingChannel.send('user4','hello world')
-  // });
+
 })();
