@@ -1,68 +1,107 @@
 (function () {
-  var options = {
+
+  let options = {
     video: {width: 1280, height: 720},
     audio: true
   };
 
   // Setting up local video display
-  navigator.mediaDevices.getUserMedia(options).then( function(avStream) {
-    var videoId = 1;
-    var video = document.getElementById("video-display-"+videoId);
-    video.srcObject = avStream;
-    video.onloadedmetadata = function(e) {
-        video.play();
-    }
-  }).catch(function(err) {
-      console.log(err.name + ": " + err.message);
-  });
+  // navigator.mediaDevices.getUserMedia(options).then( function(avStream) {
+  //   var videoId = 1;
+  //   var video = document.getElementById("video-display-"+videoId);
+  //   video.srcObject = avStream;
+  //   video.onloadedmetadata = function(e) {
+  //       video.play();
+  //   }
+  // }).catch(function(err) {
+  //     console.log(err.name + ": " + err.message);
+  // });
 
   // Create an endpoints database
-  var endpoints = {};
+  let endpoints = {};
 
   // RTC helper functions using ES6
   const startConnection = () => {
-
-    const pc = new RTCPeerConnection({});
-    // get a local stream, show it in a self-view and add it to be sent
-    navigator.getUserMedia({
+    const pc = new RTCPeerConnection();
+    let options = {
       'audio': true,
       'video': true,
-    }, (stream) => {
-      selfView.src = URL.createObjectURL(stream);
-      pc.addStream(stream);
-    }, logError)
+    }
 
+    pc.onicecandidate = (evt) => {
+      if(evt.candidate) {
+        signallingChannel.send({
+          'candidate': evt.candidate
+        }));
+      }
+    }
+
+    navigator.getUserMedia(options).then( (stream) => {
+      pc.addTrack(stream);
+    }).catch((err) => {
+      console.log(err.name + ": " + err.message);
+    }));
+
+    return pc;
   }
 
   // Create a listener callback
-  var listenerCb = function(from, toEndpoint, method, data) {
+  const listenerCb = (from, toEndpoint, method, data) => {
     switch(method) {
       case 'INIT':
         toEndpoint.data.status = 'FREE';
         break;
-      case 'CALL':
-        if(toEndpoint.data.status === "FREE") {
-          startConnection();
+
+      case 'CALL_REQUEST':
+        if(toEndpoint.data.status === 'FREE') {
+          //1) create RTCpeercon object, store it on data!
+          //2) pc.onIce... pc.onAddStream
+          //3) our end ready... now call 'ACCEPT_CALL' to other party.
+          let pc = startConnection();
+
+          toEndpoint.data.pc = pc;
+          //toEndpoint = { id: "user1", name: "nick", data: { status: free, pc: XX}, cb: function }
+          signallingChannel.send(toEndpoint.id, from, 'ACCEPT_CALL', toEndpoint.data.pc);
         }
-        //do something
-        //if accepting, send message back to caller!
-        //THEN CREATE YOUR END OF THE CALL.. PEER CONNECTOR
         break;
+
+      case 'CALL_ACCEPT':
+      console.log("pc data", data);
+        //1) create pc from this end - creating instance.. & store in data.pc
+        // 2) pc.createOffer. making a call 'OFFER' - sending json offer object
+        break;
+
+      case 'CALL_DENIED':
+        break;
+
+      case 'OFFER':
+      //pc.createAnswer then call 'ANSWER'
+        break;
+
+      case 'ANSWER':
+      //calls "ICE_CANDIDATE", with data..this might happen many times..
+        break;
+
+      case 'ICE_CANDIDATE':
+
+        break;
+
       default:
         //do default
     }
   }
   // Create a signalling channel
-  var signallingChannel = {
-    registerUser: function(userId, userInfo, listenerCb) {
+  const signallingChannel = {
+    registerUser: (userId, userInfo, listenerCb) => {
       var newUser = endpoints[userId] = {
+        id: userId,
         name: userInfo.name,
         data: userInfo.data || {},
         cb: listenerCb
       }
-      listenerCb("", newUser, "INIT");
+      listenerCb("system", newUser, "INIT");
     },
-    send: function(from, to, method, data) {
+    send: (from, to, method, data) => {
       endpoints[to].cb(from, endpoints[to], method, data);
     }
   }
@@ -75,12 +114,12 @@
 
 
   //register click event to call buttons
-  var callBtns = document.querySelectorAll(".call-btn");
-  Array.prototype.forEach.call(callBtns, function(button) {
-    button.addEventListener('click', function() {
-      var from = button.parentElement.getAttribute("id");
-      var to = "user" + document.getElementById(from+'-dropdown').value;
-      signallingChannel.send(from, to, 'CALL');
+  const callBtns = document.querySelectorAll(".call-btn");
+  Array.prototype.forEach.call(callBtns, (button) => {
+    button.addEventListener('click', () => {
+      let from = button.parentElement.getAttribute("id");
+      let to = "user" + document.getElementById(from+'-dropdown').value;
+      signallingChannel.send(from, to, 'CALL_REQUEST');
     })
   })
 
