@@ -23,6 +23,7 @@ const publicFiles = (req, res) => {
 
 const poll = (req, res) => {
   let userId = req.url.split('/')[1];
+  console.log("Receiving polling request from ", userId);
   if (!directory[userId]) {
     directory[userId] = {
       messages: []
@@ -32,8 +33,25 @@ const poll = (req, res) => {
     directory: Object.keys(directory),
     messages: directory[userId].messages
   })
-  res.writeHead(200, {'content-type': 'application/json'});
+  res.writeHead(200, {'content-type': 'application/json', 'Access-Control-Allow-Origin': '*'});
   res.end(data);
+  directory[userId].messages.length = 0;
 }
 
-module.exports = { home, publicFiles, poll }
+const send = (req, res) => {
+  let from = req.url.split('/')[1];
+  let to = req.url.split('/')[2];
+  console.log("Receiving send request - send video from ", from, " to ", to);
+  let recipient = directory[to]
+  if (recipient) {
+    recipient.messages.push({from, data: req.payload.data});
+    res.writeHead(200, {'content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
+    res.end("success");
+  }
+  else {
+    res.writeHead(404, {'content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
+    res.end("Unknown destination");
+  }
+}
+
+module.exports = { home, publicFiles, poll, send }

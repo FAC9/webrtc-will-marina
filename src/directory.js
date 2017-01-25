@@ -1,3 +1,3 @@
-const directory = {};
+const directory = {}
 
 module.exports = directory;
