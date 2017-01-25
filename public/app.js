@@ -116,12 +116,13 @@
   }
 
   const poll = () => {
-    let url = `https://192.168.2.9:3000/poll/${myname}`;
+    let url = `https://192.168.2.13:3000/poll/${myname}`;
     request.get(url, (err, response) => {
+      if(err) console.log(err, 'error with poll request');
       //response object (data) looks like... '{ directory: ['john', 'emily'], messages: [ {from: 'user', data: data.payload } ] }'
       // data = payload.data = { command: "CALL_REQUEST", info: offer  }
       response = JSON.parse(response);
-      
+
       contacts = response.directory;
 
       let messages = response.messages;
@@ -140,7 +141,7 @@
   const send = (toname, command, info = null) => {
     let data = {command, info};
     data = JSON.stringify(data);
-    const url = `https://192.168.2.9:3000/send/${myname}/${toname}`;
+    const url = `https://192.168.2.13:3000/send/${myname}/${toname}`;
     request.post(url, data, (err, response) => {
       (response === 'success') ? console.log(response) : alert(response);
     })
