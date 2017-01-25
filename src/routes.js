@@ -22,7 +22,7 @@ const publicFiles = (req, res) => {
 }
 
 const poll = (req, res) => {
-  let userId = req.url.split('/')[1];
+  let userId = req.url.split('/')[2];
   console.log("Receiving polling request from ", userId);
   if (!directory[userId]) {
     directory[userId] = {
@@ -39,19 +39,29 @@ const poll = (req, res) => {
 }
 
 const send = (req, res) => {
-  let from = req.url.split('/')[1];
-  let to = req.url.split('/')[2];
-  console.log("Receiving send request - send video from ", from, " to ", to);
-  let recipient = directory[to]
-  if (recipient) {
-    recipient.messages.push({from, data: req.payload.data});
-    res.writeHead(200, {'content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
-    res.end("success");
-  }
-  else {
-    res.writeHead(404, {'content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
-    res.end("Unknown destination");
-  }
+  let from = req.url.split('/')[2];
+  let to = req.url.split('/')[3];
+  let body = "";
+  req.on('data', (chunk) => {
+    body += chunk;
+  })
+  req.on('end', (chunk) => {
+    if (chunk) {
+      body += chunk;
+    }
+    console.log("Receiving send request - send video from ", from, " to ", to);
+    let recipient = directory[to];
+    if (recipient) {
+      console.log(body);
+      recipient.messages.push({from, data: body});
+      res.writeHead(200, {'content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
+      res.end("success");
+    }
+    else {
+      res.writeHead(404, {'content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
+      res.end("Unknown destination");
+    }
+  })
 }
 
 module.exports = { home, publicFiles, poll, send }

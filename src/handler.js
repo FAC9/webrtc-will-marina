@@ -3,6 +3,7 @@ const { home, publicFiles, poll, send } = require('./routes.js');
 
 const handler = (req, res) => {
   let urlDir = req.url.split('/')[1];
+  console.log('urldir ', urlDir, ' req ', req.url);
   if(req.url === '/') {
     home(req, res);
   }
