@@ -12,7 +12,9 @@ const handler = (req, res) => {
   let extension = req.url.split('.')[1] || "html";
   let headers = {'content-type': 'text/' + extension};
   res.writeHead(200, headers);
-
+  if (req.url === '/test') {
+    res.end('heyyy');
+  }
   if(req.url === '/') {
     let filepath = path.join(__dirname, 'public', 'index.html');
     fs.readFile(filepath, (err, data) => {

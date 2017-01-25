@@ -6,19 +6,19 @@
 
     // Listener for when candidate received
     pc.onicecandidate = (e) => {
-      console.log("....receiving candidate....");
+      console.log('....receiving candidate....');
       if(e.candidate) {
-        console.log(".....Sending candidate....")
+        console.log('.....Sending candidate....')
         signallingChannel.send(to.id, from, 'CANDIDATE', e.candidate);
       } else {
         return;
       }
-    }
+    };
 
     // Listener for when stream received
     pc.onaddstream = (e) => {
       // Add peers stream to right side
-      let videoR = document.getElementById("videoR-display-"+to.id);
+      let videoR = document.getElementById('videoR-display-' + to.id);
       videoR.srcObject = e.stream;
       videoR.play();
       console.log('(Displaying ' + from + 's video stream)')
@@ -35,17 +35,17 @@
     // Initialise users webcam before peer answers call
     return navigator.mediaDevices.getUserMedia(options)
     .then(function(avStream) {
-      console.log("Setting up users webcam before peer answers")
-      let videoL = document.getElementById("video-display-"+to.id);
+      console.log('Setting up users webcam before peer answers')
+      let videoL = document.getElementById('video-display-'+to.id);
       videoL.srcObject = avStream;
       videoL.onloadedmetadata = function(e) {
           videoL.play();
       }
-      console.log("Add stream to peer connection")
+      console.log('Add stream to peer connection')
       pc.addStream(avStream);
     })
     .catch(function(err) {
-        console.log(err.name + ": " + err.message);
+        console.log(err.name + ': ' + err.message);
     });
 
   }
@@ -64,7 +64,7 @@
           // Make new Peer Connection and pass userId object
           startConnection(fromEndpoint.id, toEndpoint);
           //Send message after Peer connection set up to accept
-          console.log("Receiving call from " + fromEndpoint.id);
+          console.log('Receiving call from ' + fromEndpoint.id);
           signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'CALL_ACCEPT');
         }
         break;
@@ -109,9 +109,9 @@
         break;
 
       case 'CANDIDATE':
-        console.log(".....Candidate identified.....");
+        console.log('.....Candidate identified.....');
         let pc4=toEndpoint.data.pc;
-        console.log(".....Adding ice candidate.....");
+        console.log('.....Adding ice candidate.....');
         pc4.addIceCandidate(new RTCIceCandidate(data));
         break;
 
@@ -137,7 +137,7 @@
         cb: listenerCb
       }
       // Calls new user object in database with INIT message ('system' = not concerned about 'from')
-      listenerCb("system", newUser, "INIT");
+      listenerCb('system', newUser, 'INIT');
     },
     // Takes static 'from' and 'to' string, sends database objects of from/to users
     // Sends string message and data
@@ -147,22 +147,39 @@
   }
 
   // Register all users with userId, name and callback function
-  signallingChannel.registerUser("user1", {name: "Marina"}, listenerCb);
-  signallingChannel.registerUser("user2", {name: "Will"}, listenerCb);
-  signallingChannel.registerUser("user3", {name: "Nick"}, listenerCb);
-  signallingChannel.registerUser("user4", {name: "Marko"}, listenerCb);
+  signallingChannel.registerUser('user1', {name: 'Marina'}, listenerCb);
+  signallingChannel.registerUser('user2', {name: 'Will'}, listenerCb);
+  signallingChannel.registerUser('user3', {name: 'Nick'}, listenerCb);
+  signallingChannel.registerUser('user4', {name: 'Marko'}, listenerCb);
 
 
   // Register click event to call buttons
-  const callBtns = document.querySelectorAll(".call-btn");
+  const callBtns = document.querySelectorAll('.call-btn');
   Array.prototype.forEach.call(callBtns, (button) => {
     button.addEventListener('click', () => {
       // Get parents userId
-      let from = button.parentElement.getAttribute("id");
+      let from = button.parentElement.getAttribute('id');
       // Get select menu value
-      let to = "user" + document.getElementById(from+'-dropdown').value;
+      let to = 'user' + document.getElementById(from+'-dropdown').value;
       // Send call request to signalling channel
       signallingChannel.send(from, to, 'CALL_REQUEST');
     })
   })
+
+  const request = (method, url, cb, payload) => {
+    let xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === xhr.DONE && xhr.status === 200) {
+        return cb(null, xhr.responseText);
+      }
+      return cb('error boiii');
+    };
+    xhr.open(method, url);
+    if (method === 'POST') {
+      xhr.setRequestHeader('content-type', 'text/json');
+    }
+    xhr.send(payload);
+  };
+
+  request('POST', '/test', (err, data) => console.log(data), 'woooo');
 })();
