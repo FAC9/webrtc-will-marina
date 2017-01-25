@@ -19,7 +19,13 @@
   },
   "homepage": "https://github.com/FAC9/webrtc-will-marina#readme",
   "devDependencies": {
-    "nodemon": "^1.11.0"
+    "nodemon": "^1.11.0",
+    "eslint": "^3.10.2",
+    "eslint-config-semistandard": "^7.0.0",
+    "eslint-config-standard": "^6.2.1",
+    "eslint-plugin-promise": "^3.4.0",
+    "eslint-plugin-react": "^6.7.1",
+    "eslint-plugin-standard": "^2.0.1"
   },
   "dependencies": {
     "webrtc-adapter": "^3.1.0"

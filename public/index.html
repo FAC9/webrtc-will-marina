@@ -11,18 +11,19 @@
 
     <div id="user1" class="user-container">
       <p>User 1</p>
-      <video id='videoR-display-user1' class="video-display"></video>
-      <video id='video-display-user1' class="video-display"></video>
+      <video id='video-display-R' class="video-display"></video>
+      <video id='video-display-L' class="video-display"></video>
 
       <button class="call-btn">Call</button>
-      <select name="target" class="dropdown" id="user1-dropdown">
+      <select name="target" class="dropdown" id="dropdown">
         <option value="2">User 2</option>
         <option value="3">User 3</option>
         <option value="4">User 4</option>
       </select>
       <button class="hangup-btn">Hang up</button>
     </div>
-    <div id="user2" class="user-container">
+
+    <!-- <div id="user2" class="user-container">
       <p>User 2</p>
       <video id='videoR-display-user2' class="video-display"></video>
       <video id='video-display-user2' class="video-display"></video>
@@ -59,8 +60,10 @@
         <option value="3">User 3</option>
       </select>
       <button class="hangup-btn">Hang up</button>
-    </div>
+    </div> -->
+
     <!--<script type="text/javascript" src="https://webrtc.github.io/adapter/adapter-latest.js"></script>-->
+    <script type="text/javascript" src="request.js"></script>
     <script type="text/javascript" src="adapter.js"></script>
     <script type='text/javascript' src="app.js"></script>
   </body>
