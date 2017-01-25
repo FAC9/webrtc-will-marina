@@ -1,6 +1,6 @@
 (function () {
 
-  const startConnection = (from, to) => {
+  const startConnection = (from) => {
     // After 'CALL_REQUEST', set up RTCPeerConnection
     const pc = new RTCPeerConnection();
 
@@ -9,7 +9,8 @@
       console.log('....receiving candidate....');
       if(e.candidate) {
         console.log('.....Sending candidate....')
-        signallingChannel.send(to.id, from, 'CANDIDATE', e.candidate);
+        //EDIT
+        send(from, 'CANDIDATE', e.candidate);
       } else {
         return;
       }
@@ -18,7 +19,7 @@
     // Listener for when stream received
     pc.onaddstream = (e) => {
       // Add peers stream to right side
-      let videoR = document.getElementById('videoR-display-' + to.id);
+      let videoR = document.getElementById('video-display-R');
       videoR.srcObject = e.stream;
       videoR.play();
       console.log('(Displaying ' + from + 's video stream)')
@@ -29,14 +30,11 @@
       audio: true
     };
 
-    // Set peer connection object to db
-    to.data.pc = pc;
-
-    // Initialise users webcam before peer answers call
+    // Initialise webcam before peer answers call
     return navigator.mediaDevices.getUserMedia(options)
-    .then(function(avStream) {
+    .then((avStream) => {
       console.log('Setting up users webcam before peer answers')
-      let videoL = document.getElementById('video-display-'+to.id);
+      let videoL = document.getElementById('video-display-L');
       videoL.srcObject = avStream;
       videoL.onloadedmetadata = function(e) {
           videoL.play();
@@ -57,10 +55,11 @@
 
       case 'CALL_REQUEST':
         // Make new Peer Connection and pass userId object
-        startConnection(fromEndpoint.id, toEndpoint);
+        startConnection(from);
         //Send message after Peer connection set up to accept
-        console.log('Receiving call from ' + fromEndpoint.id);
-        signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'CALL_ACCEPT');
+        console.log('Receiving call from ' + from);
+        send(myname, from, 'CALL_ACCEPT');
+
         break;
 
       case 'CALL_ACCEPT':
@@ -175,12 +174,13 @@
   };
 
   let contacts = [];
+  const myname = 'Micky Mouse';
 
-  const poll = (fromName) => {
-    let url = `/poll/${fromName}`;
-    request('GET', url, (err, response) => {
+  const poll = (myname) => {
+    let url = `/poll/${myname}`;
+    request.get(url, (err, response) => {
       //response object (data) looks like... '{ directory: ['john', 'emily'], messages: [ {from: 'user', data: data.payload } ] }'
-      // data = payload.data = { to: 'nick', command: "CALL_REQUEST", info: offer  }
+      // data = payload.data = { command: "CALL_REQUEST", info: offer  }
       response = JSON.parse(response);
       contacts = response.directory;
 
@@ -194,10 +194,17 @@
         listenerCb(from, data)
         console.log(`Processed ${data.command} from ${from}`);
       })
-
-
     })
   }
 
-  request('POST', '/test', (err, data) => console.log(data), 'woooo');
+  const send = (myname, toname, command, info = null) => {
+    let data = {command, info};
+    data = JSON.stringify(data);
+    const url = `/send/${myname}/${toname}`;
+    request.post(url, data, (err, response) => {
+      (response === 'success') ? console.log(response) : alert(response);
+    })
+
+  }
+
 })();
