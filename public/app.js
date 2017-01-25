@@ -51,22 +51,16 @@
   }
 
   // Create a listener callback
-  const listenerCb = (fromEndpoint, toEndpoint, method, data) => {
-    switch(method) {
+  const listenerCb = (from, data) => {
+    switch(data.command) {
       // Called when registered
-      case 'INIT':
-        console.log('User is now registerd and free.')
-        toEndpoint.data.status = 'FREE';
-        break;
 
       case 'CALL_REQUEST':
-        if(toEndpoint.data.status === 'FREE') {
-          // Make new Peer Connection and pass userId object
-          startConnection(fromEndpoint.id, toEndpoint);
-          //Send message after Peer connection set up to accept
-          console.log('Receiving call from ' + fromEndpoint.id);
-          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'CALL_ACCEPT');
-        }
+        // Make new Peer Connection and pass userId object
+        startConnection(fromEndpoint.id, toEndpoint);
+        //Send message after Peer connection set up to accept
+        console.log('Receiving call from ' + fromEndpoint.id);
+        signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'CALL_ACCEPT');
         break;
 
       case 'CALL_ACCEPT':
@@ -152,7 +146,6 @@
   signallingChannel.registerUser('user3', {name: 'Nick'}, listenerCb);
   signallingChannel.registerUser('user4', {name: 'Marko'}, listenerCb);
 
-
   // Register click event to call buttons
   const callBtns = document.querySelectorAll('.call-btn');
   Array.prototype.forEach.call(callBtns, (button) => {
@@ -180,6 +173,31 @@
     }
     xhr.send(payload);
   };
+
+  let contacts = [];
+
+  const poll = (fromName) => {
+    let url = `/poll/${fromName}`;
+    request('GET', url, (err, response) => {
+      //response object (data) looks like... '{ directory: ['john', 'emily'], messages: [ {from: 'user', data: data.payload } ] }'
+      // data = payload.data = { to: 'nick', command: "CALL_REQUEST", info: offer  }
+      response = JSON.parse(response);
+      contacts = response.directory;
+
+      let messages = response.messages;
+
+      if(messages.length === 0) {
+        return;
+      }
+      // iterate through the messages.. for each
+      messages.forEach( ({from, data}) => {
+        listenerCb(from, data)
+        console.log(`Processed ${data.command} from ${from}`);
+      })
+
+
+    })
+  }
 
   request('POST', '/test', (err, data) => console.log(data), 'woooo');
 })();
