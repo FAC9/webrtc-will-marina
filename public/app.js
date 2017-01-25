@@ -69,11 +69,11 @@
       case 'CALL_ACCEPT':
         // Set own connection after user has called me
         console.log('Setting up connection' )
-        startConnection(from);
+        startConnection(from)
         .then( () => {
           // Get connection data
           session.pc.createOffer().then((offer) => {
-            console.log(toEndpoint.id + ' has stored own offer')
+            console.log('Store offer')
             session.pc.setLocalDescription(offer);
             console.log('Sending offer to ' + from)
             send(from, 'OFFER', offer); //reminder that offer here is the offer object
@@ -115,46 +115,6 @@
     }
   }
 
-  // Create a signalling channel to interact with callback functions and endpoints db
-  const signallingChannel = {
-    // Adds user object to database
-    registerUser: (userId, userInfo, listenerCb) => {
-      var newUser = endpoints[userId] = {
-        id: userId,
-        name: userInfo.name,
-        data: userInfo.data || {},
-        cb: listenerCb
-      }
-      // Calls new user object in database with INIT message ('system' = not concerned about 'from')
-      listenerCb('system', newUser, 'INIT');
-    },
-    // Takes static 'from' and 'to' string, sends database objects of from/to users
-    // Sends string message and data
-    send: (from, to, method, data) => {
-      endpoints[to].cb(endpoints[from], endpoints[to], method, data);
-    }
-  }
-
-  // Register all users with userId, name and callback function
-  signallingChannel.registerUser('user1', {name: 'Marina'}, listenerCb);
-  signallingChannel.registerUser('user2', {name: 'Will'}, listenerCb);
-  signallingChannel.registerUser('user3', {name: 'Nick'}, listenerCb);
-  signallingChannel.registerUser('user4', {name: 'Marko'}, listenerCb);
-
-  // Register click event to call buttons
-  const callBtns = document.querySelectorAll('.call-btn');
-  Array.prototype.forEach.call(callBtns, (button) => {
-    button.addEventListener('click', () => {
-      // Get parents userId
-      let from = button.parentElement.getAttribute('id');
-      // Get select menu value
-      let to = 'user' + document.getElementById(from+'-dropdown').value;
-      // Send call request to signalling channel
-      signallingChannel.send(from, to, 'CALL_REQUEST');
-    })
-  })
-
-
   const poll = (myname) => {
     let url = `/poll/${myname}`;
     request.get(url, (err, response) => {
@@ -171,7 +131,7 @@
       // iterate through the messages.. for each
       messages.forEach( ({from, data: {command, info}}) => {
         listenerCb(from, command, info)
-        console.log(`Processed ${data.command} from ${from}`);
+        console.log(`Processed ${command} from ${from}`);
       })
     })
   }
@@ -183,7 +143,50 @@
     request.post(url, data, (err, response) => {
       (response === 'success') ? console.log(response) : alert(response);
     })
-
   }
+
+  setInterval(() => {
+    poll(myname);
+  }, 5000);
+
+  // // Create a signalling channel to interact with callback functions and endpoints db
+  // const signallingChannel = {
+  //   // Adds user object to database
+  //   registerUser: (userId, userInfo, listenerCb) => {
+  //     var newUser = endpoints[userId] = {
+  //       id: userId,
+  //       name: userInfo.name,
+  //       data: userInfo.data || {},
+  //       cb: listenerCb
+  //     }
+  //     // Calls new user object in database with INIT message ('system' = not concerned about 'from')
+  //     listenerCb('system', newUser, 'INIT');
+  //   },
+  //   // Takes static 'from' and 'to' string, sends database objects of from/to users
+  //   // Sends string message and data
+  //   send: (from, to, method, data) => {
+  //     endpoints[to].cb(endpoints[from], endpoints[to], method, data);
+  //   }
+  // }
+  //
+  // // Register all users with userId, name and callback function
+  // signallingChannel.registerUser('user1', {name: 'Marina'}, listenerCb);
+  // signallingChannel.registerUser('user2', {name: 'Will'}, listenerCb);
+  // signallingChannel.registerUser('user3', {name: 'Nick'}, listenerCb);
+  // signallingChannel.registerUser('user4', {name: 'Marko'}, listenerCb);
+
+
+  // Register click event to call buttons
+  const callBtns = document.querySelectorAll('.call-btn');
+  Array.prototype.forEach.call(callBtns, (button) => {
+    button.addEventListener('click', () => {
+      // Get parents userId
+      let from = button.parentElement.getAttribute('id');
+      // Get select menu value
+      let to = 'user' + document.getElementById(from+'-dropdown').value;
+      // Send call request to signalling channel
+      signallingChannel.send(from, to, 'CALL_REQUEST');
+    })
+  })
 
 })();
