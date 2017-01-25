@@ -1,4 +1,8 @@
 (function () {
+  // Create an endpoints database
+  let session = {};
+  let contacts = [];
+  const myname = 'Micky Mouse';
 
   const startConnection = (from) => {
     // After 'CALL_REQUEST', set up RTCPeerConnection
@@ -29,7 +33,8 @@
       video: {width: 1280, height: 720},
       audio: true
     };
-
+    // Save pc locally
+    session.pc = pc;
     // Initialise webcam before peer answers call
     return navigator.mediaDevices.getUserMedia(options)
     .then((avStream) => {
@@ -49,8 +54,8 @@
   }
 
   // Create a listener callback
-  const listenerCb = (from, data) => {
-    switch(data.command) {
+  const listenerCb = (from, command, info) => {
+    switch(command) {
       // Called when registered
 
       case 'CALL_REQUEST':
@@ -58,23 +63,20 @@
         startConnection(from);
         //Send message after Peer connection set up to accept
         console.log('Receiving call from ' + from);
-        send(myname, from, 'CALL_ACCEPT');
-
+        send(from, 'CALL_ACCEPT');
         break;
 
       case 'CALL_ACCEPT':
         // Set own connection after user has called me
-        console.log('Setting up connection for ' + toEndpoint.id)
-        startConnection(fromEndpoint.id, toEndpoint)
+        console.log('Setting up connection' )
+        startConnection(from);
         .then( () => {
           // Get connection data
-          var pc2 = toEndpoint.data.pc;
-          console.log(toEndpoint.id + ' is making offer')
-          pc2.createOffer().then((offer) => {
+          session.pc.createOffer().then((offer) => {
             console.log(toEndpoint.id + ' has stored own offer')
-            pc2.setLocalDescription(offer);
-            console.log('Sending offer to ' + fromEndpoint.id)
-            signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'OFFER', offer);
+            session.pc.setLocalDescription(offer);
+            console.log('Sending offer to ' + from)
+            send(from, 'OFFER', offer); //reminder that offer here is the offer object
           })
         });
 
@@ -82,30 +84,27 @@
         break;
 
       case 'OFFER':
-
-        let pc1 = toEndpoint.data.pc;
-        console.log(toEndpoint.id + ' is storing offer from ' + fromEndpoint.id)
-        pc1.setRemoteDescription(new RTCSessionDescription(data))
-        .then( () => pc1.createAnswer())
+        console.log('Storing offer from ' + from)
+        session.pc.setRemoteDescription(new RTCSessionDescription(info))
+        .then( () => session.pc.createAnswer())
         .then((answer) => {
-          console.log(fromEndpoint.id + ' is storing own answer, and sending answer to ' + toEndpoint.id)
-          pc1.setLocalDescription(answer);
-          signallingChannel.send(toEndpoint.id, fromEndpoint.id, 'ANSWER', answer)
+          console.log('Storing own answer, and sending answer to ' + from)
+          session.pc.setLocalDescription(answer);
+          send(from, 'ANSWER', answer)
         })
         break;
 
       case 'ANSWER':
       // Set remote description
-        let pc3 = toEndpoint.data.pc;
-        console.log(fromEndpoint.id + ' has received answer from ' + toEndpoint.id + ' and is storing it')
-        pc3.setRemoteDescription(new RTCSessionDescription(data))
+        console.log('Received answer from ' + from + ' and storing it')
+        session.pc.setRemoteDescription(new RTCSessionDescription(info))
         break;
 
       case 'CANDIDATE':
         console.log('.....Candidate identified.....');
-        let pc4=toEndpoint.data.pc;
+
         console.log('.....Adding ice candidate.....');
-        pc4.addIceCandidate(new RTCIceCandidate(data));
+        session.pc.addIceCandidate(new RTCIceCandidate(info));
         break;
 
       case 'CALL_DENIED':
@@ -115,9 +114,6 @@
         return;
     }
   }
-
-  // Create an endpoints database
-  let endpoints = {};
 
   // Create a signalling channel to interact with callback functions and endpoints db
   const signallingChannel = {
@@ -158,23 +154,6 @@
     })
   })
 
-  const request = (method, url, cb, payload) => {
-    let xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === xhr.DONE && xhr.status === 200) {
-        return cb(null, xhr.responseText);
-      }
-      return cb('error boiii');
-    };
-    xhr.open(method, url);
-    if (method === 'POST') {
-      xhr.setRequestHeader('content-type', 'text/json');
-    }
-    xhr.send(payload);
-  };
-
-  let contacts = [];
-  const myname = 'Micky Mouse';
 
   const poll = (myname) => {
     let url = `/poll/${myname}`;
@@ -190,14 +169,14 @@
         return;
       }
       // iterate through the messages.. for each
-      messages.forEach( ({from, data}) => {
-        listenerCb(from, data)
+      messages.forEach( ({from, data: {command, info}}) => {
+        listenerCb(from, command, info)
         console.log(`Processed ${data.command} from ${from}`);
       })
     })
   }
 
-  const send = (myname, toname, command, info = null) => {
+  const send = (toname, command, info = null) => {
     let data = {command, info};
     data = JSON.stringify(data);
     const url = `/send/${myname}/${toname}`;
