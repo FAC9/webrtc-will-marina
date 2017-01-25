@@ -122,16 +122,21 @@
       //response object (data) looks like... '{ directory: ['john', 'emily'], messages: [ {from: 'user', data: data.payload } ] }'
       // data = payload.data = { command: "CALL_REQUEST", info: offer  }
       response = JSON.parse(response);
-
       contacts = response.directory;
 
       let messages = response.messages;
+      console.log(messages, "COMAND IN MESSAGE");
 
       if(messages.length === 0) {
         return;
       }
       // iterate through the messages.. for each
-      messages.forEach( ({from, data: {command, info}}) => {
+      messages.forEach( ({from, data}) => {
+        data = JSON.parse(data);
+        console.log(data, "DATA in for each...");
+        let command  = data.command;
+        let info = data.info;
+        console.log(command, "COMMAND IN MESSAGE");
         listenerCb(from, command, info)
         console.log(`Processed ${command} from ${from}`);
       })
