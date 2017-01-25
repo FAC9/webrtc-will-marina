@@ -6,6 +6,7 @@ var request = (function () {
       return false;
     }
     httpRequest.onreadystatechange = function () {
+      console.log(httpRequest.readyState);
       if (httpRequest.readyState === XMLHttpRequest.DONE) {
         if (httpRequest.status === 200) {
           cb(null, httpRequest.response);
@@ -15,13 +16,13 @@ var request = (function () {
       }
     };
     httpRequest.open(method, url);
-    httpRequest.setRequestHeader('content-type', 'text/json');
+    // httpRequest.setRequestHeader('content-type', 'text/json');
     httpRequest.send(data);
   }
 
   var request = {
     get: function (url, cb) {
-      makeRequest(url, null, 'GET', cb);
+      makeRequest(url, '', 'GET', cb);
     },
     post: function (url, data, cb) {
       makeRequest(url, data, 'POST', cb);

@@ -2,7 +2,7 @@
   // Create an endpoints database
   let session = {};
   let contacts = [];
-  const myname = 'Micky Mouse';
+  const myname = 'will';
 
   const startConnection = (from) => {
     // After 'CALL_REQUEST', set up RTCPeerConnection
@@ -121,6 +121,7 @@
       //response object (data) looks like... '{ directory: ['john', 'emily'], messages: [ {from: 'user', data: data.payload } ] }'
       // data = payload.data = { command: "CALL_REQUEST", info: offer  }
       response = JSON.parse(response);
+      
       contacts = response.directory;
 
       let messages = response.messages;
@@ -149,32 +150,6 @@
     poll(myname);
   }, 5000);
 
-  // // Create a signalling channel to interact with callback functions and endpoints db
-  // const signallingChannel = {
-  //   // Adds user object to database
-  //   registerUser: (userId, userInfo, listenerCb) => {
-  //     var newUser = endpoints[userId] = {
-  //       id: userId,
-  //       name: userInfo.name,
-  //       data: userInfo.data || {},
-  //       cb: listenerCb
-  //     }
-  //     // Calls new user object in database with INIT message ('system' = not concerned about 'from')
-  //     listenerCb('system', newUser, 'INIT');
-  //   },
-  //   // Takes static 'from' and 'to' string, sends database objects of from/to users
-  //   // Sends string message and data
-  //   send: (from, to, method, data) => {
-  //     endpoints[to].cb(endpoints[from], endpoints[to], method, data);
-  //   }
-  // }
-  //
-  // // Register all users with userId, name and callback function
-  // signallingChannel.registerUser('user1', {name: 'Marina'}, listenerCb);
-  // signallingChannel.registerUser('user2', {name: 'Will'}, listenerCb);
-  // signallingChannel.registerUser('user3', {name: 'Nick'}, listenerCb);
-  // signallingChannel.registerUser('user4', {name: 'Marko'}, listenerCb);
-
 
   // Register click event to call buttons
   const callBtns = document.querySelectorAll('.call-btn');
@@ -183,7 +158,7 @@
       // Get parents userId
       //let from = button.parentElement.getAttribute('id');
       // Get select menu value
-      let to = 'user' + document.getElementById('dropdown').value;
+      let to = document.getElementById('dropdown').value;
       // Send call request to signalling channel
       send(to, 'CALL_REQUEST');
     })
